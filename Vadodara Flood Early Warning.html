@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Vadodara Flood Early Warning</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700&family=Noto+Sans+Gujarati:wght@400;600&family=Noto+Sans+Devanagari:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef3f1;--card:#fff;--ink:#12303a;--mute:#5b7078;--line:#d3dedb;--water:#1b6fa8;--warn:#b86e00;--warnbg:#fff3dc;--bad:#b3261e;--badbg:#fde8e6;--ok:#2d7a54;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1a1f;--card:#16262d;--ink:#e3eef0;--mute:#93aab1;--line:#29404a;--water:#5db4ea;--warn:#f0b04a;--warnbg:#3a2c10;--bad:#ff8a80;--badbg:#3d1b18;--ok:#6fcf9f}}
+:root[data-theme="dark"]{--bg:#0e1a1f;--card:#16262d;--ink:#e3eef0;--mute:#93aab1;--line:#29404a;--water:#5db4ea;--warn:#f0b04a;--warnbg:#3a2c10;--bad:#ff8a80;--badbg:#3d1b18;--ok:#6fcf9f}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Noto Sans","Noto Sans Gujarati","Noto Sans Devanagari",system-ui,sans-serif}
+main{max-width:1040px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:1.7rem;line-height:1.2;margin:0 0 4px}
+.sub{color:var(--mute);margin:0 0 20px;max-width:62ch}
+.bar{display:flex;flex-wrap:wrap;gap:16px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:16px}
+.bar label{font-weight:600}
+.bar input[type=range]{flex:1;min-width:160px;accent-color:var(--water)}
+.rain{font-weight:700;font-size:1.3rem;min-width:7ch;color:var(--water)}
+button{font:inherit;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:6px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--water)}button:focus-visible{outline:2px solid var(--water);outline-offset:2px}
+button[aria-pressed=true]{background:var(--water);border-color:var(--water);color:#fff}
+.row{display:flex;flex-wrap:wrap;gap:6px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:16px;margin-bottom:16px}
+.st{background:var(--card);border:1px solid var(--line);border-left:6px solid var(--ok);border-radius:10px;padding:14px 16px}
+.st.warn{border-left-color:var(--warn);background:var(--warnbg)}.st.danger{border-left-color:var(--bad);background:var(--badbg)}
+.st h2{font-size:1.05rem;margin:0}.kind{color:var(--mute);font-size:.85rem;margin:0 0 8px}
+.lv{display:flex;align-items:baseline;gap:8px}.lv b{font-size:2rem;line-height:1}.lv span{color:var(--mute)}
+.eta{margin:6px 0 4px;font-weight:600}
+.warn .eta{color:var(--warn)}.danger .eta{color:var(--bad)}
+svg.sp{width:100%;height:64px;display:block}
+.feed{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.feed h2{font-size:1.05rem;margin:0}
+.fh{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:center;margin-bottom:8px}
+.al{border-top:1px solid var(--line);padding:10px 0;display:flex;gap:12px}
+.al time{color:var(--mute);min-width:5ch;font-variant-numeric:tabular-nums}
+.al.warn p{color:var(--warn)}.al.danger p{color:var(--bad);font-weight:600}.al.ok p{color:var(--ok)}
+.al p{margin:0}.empty{color:var(--mute);padding:10px 0}
+.note{color:var(--mute);font-size:.88rem;margin-top:16px;max-width:80ch}
+</style>
+</head>
+<body>
+<main>
+<h1>Vadodara Flood Early Warning</h1>
+<p class="sub">Simulated water-level sensors at three flood-prone points. A trend model forecasts when each will cross its danger level, and alerts are written in English, Hindi and Gujarati.</p>
+
+<div class="bar">
+  <label for="rain">Rainfall</label>
+  <input id="rain" type="range" min="0" max="90" value="0">
+  <span class="rain" id="rv">0 mm/h</span>
+  <div class="row" id="presets">
+    <button data-r="0">Clear</button><button data-r="25">Moderate</button><button data-r="55">Heavy</button><button data-r="85">Cloudburst</button>
+  </div>
+  <button id="pp" aria-pressed="false">Pause</button>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<section class="feed" aria-live="polite">
+  <div class="fh"><h2>Public alerts</h2>
+    <div class="row" id="langs"><button data-l="en" aria-pressed="true">English</button><button data-l="hi" aria-pressed="false">हिन्दी</button><button data-l="gu" aria-pressed="false">ગુજરાતી</button></div>
+  </div>
+  <div id="feed"><div class="empty">No alerts. Raise the rainfall to see the system react.</div></div>
+</section>
+
+<p class="note">Demo only: readings are simulated and the forecast is a linear fit over the last 8 readings (about 40 minutes). In a real deployment, ESP32 nodes with ultrasonic sensors would send readings over MQTT, a trained model (e.g. gradient boosting on level, rain and upstream data) would replace the trend fit, and an LLM would write the alert text. Street names and diversion routes here are illustrative.</p>
+</main>
+
+<script>
+const ST=[
+ {id:'ako',n:{en:'Akota Bridge',hi:'अकोटा ब्रिज',gu:'અકોટા બ્રિજ'},kind:'Drain sensor',danger:120,c:2.6,k:.05,alt:{en:'Race Course Road',hi:'रेस कोर्स रोड',gu:'રેસ કોર્સ રોડ'}},
+ {id:'alk',n:{en:'Alkapuri Underpass',hi:'अलकापुरी अंडरपास',gu:'અલકાપુરી અંડરપાસ'},kind:'Underpass sensor',danger:60,c:1.5,k:.06,alt:{en:'RC Dutt Road',hi:'आर.सी. दत्त रोड',gu:'આર.સી. દત્ત રોડ'}},
+ {id:'kam',n:{en:'Vishwamitri at Kamnath',hi:'कामनाथ पर विश्वामित्री',gu:'કામનાથ પર વિશ્વામિત્રી'},kind:'River sensor',danger:150,c:3.4,k:.025,alt:{en:'Sayajigunj side',hi:'सयाजीगंज की ओर',gu:'સયાજીગંજ તરફ'}}
+];
+const T={
+ warn:{en:(n,m,a)=>`Water near ${n} will reach the danger level in about ${m} minutes. Avoid this road; use ${a}.`,
+       hi:(n,m,a)=>`${n} के पास पानी लगभग ${m} मिनट में खतरे के स्तर तक पहुँच जाएगा। इस रास्ते से बचें, ${a} से जाएँ।`,
+       gu:(n,m,a)=>`${n} પાસે પાણી લગભગ ${m} મિનિટમાં ભયજનક સ્તરે પહોંચશે. આ રસ્તો ટાળો, ${a} થી જાઓ.`},
+ danger:{en:(n,m,a)=>`Danger level crossed at ${n}. Do not enter this road. Use ${a}.`,
+       hi:(n,m,a)=>`${n} पर पानी खतरे के स्तर को पार कर गया है। इस रास्ते में न जाएँ। ${a} का उपयोग करें।`,
+       gu:(n,m,a)=>`${n} પર પાણી ભયજનક સ્તર વટાવી ગયું છે. આ રસ્તા પર ન જાઓ. ${a} નો ઉપયોગ કરો.`},
+ ok:{en:(n)=>`Water at ${n} is back to a safe level. The road can be used again.`,
+       hi:(n)=>`${n} पर पानी सुरक्षित स्तर पर लौट आया है। रास्ता फिर से इस्तेमाल किया जा सकता है।`,
+       gu:(n)=>`${n} પર પાણી સલામત સ્તરે પાછું આવ્યું છે. રસ્તો ફરી વાપરી શકાય છે.`}
+};
+const unit={en:'min',hi:'मिनट',gu:'મિનિટ'};
+let lang='en',rain=0,paused=false,clock=18*60,alerts=[];
+const H=40,W=8;
+ST.forEach(s=>{s.L=8;s.h=Array(H).fill(8);s.status='ok';s.eta=null});
+
+function slope(a){const y=a.slice(-W),n=y.length,mx=(n-1)/2,my=y.reduce((p,q)=>p+q,0)/n;
+ let num=0,den=0;y.forEach((v,i)=>{num+=(i-mx)*(v-my);den+=(i-mx)**2});return num/den}
+
+function tick(){
+ clock+=5;
+ ST.forEach(s=>{
+  s.L=Math.max(0,s.L+(rain*s.c-s.L)*s.k+(Math.random()-.5)*(rain?.8:.2));
+  s.h.push(s.L);s.h.shift();
+  const sl=slope(s.h);
+  s.eta=sl>0.05&&s.L<s.danger?Math.round((s.danger-s.L)/sl*5):null;
+  const prev=s.status;
+  s.status=s.L>=s.danger?'danger':(s.eta!==null&&s.eta<=120?'warn':'ok');
+  if(s.status!==prev&&!(prev==='ok'&&s.status==='ok')){
+    if(s.status==='ok'&&prev==='warn')return;
+    alerts.unshift({t:clock,s,type:s.status,m:Math.max(5,Math.round((s.eta||0)/5)*5)});
+    alerts=alerts.slice(0,12);
+  }
+ });
+ render();
+}
+
+function fmt(t){t%=1440;return String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0')}
+
+function spark(s){
+ const mx=Math.max(s.danger*1.15,...s.h),p=s.h.map((v,i)=>`${(i/(H-1)*300).toFixed(1)},${(60-v/mx*56).toFixed(1)}`).join(' ');
+ const y=60-s.danger/mx*56;
+ return `<svg class="sp" viewBox="0 0 300 64" preserveAspectRatio="none" role="img" aria-label="Water level trend"><line x1="0" x2="300" y1="${y}" y2="${y}" stroke="var(--bad)" stroke-dasharray="4 4"/><polyline points="${p}" fill="none" stroke="var(--water)" stroke-width="2.5"/></svg>`}
+
+function render(){
+ document.getElementById('grid').innerHTML=ST.map(s=>{
+  const etaTxt=s.status==='danger'?'Danger level crossed':s.eta!==null&&s.eta<=180?`Danger in ~${Math.round(s.eta/5)*5} min`:'Stable';
+  return `<article class="st ${s.status}"><h2>${s.n.en}</h2><p class="kind">${s.kind}</p>
+  <div class="lv"><b>${Math.round(s.L)}</b><span>cm of ${s.danger} cm danger</span></div>
+  <div class="eta">${etaTxt}</div>${spark(s)}</article>`}).join('');
+ document.getElementById('feed').innerHTML=alerts.length?alerts.map(a=>`<div class="al ${a.type}"><time>${fmt(a.t)}</time><p>${T[a.type][lang](a.s.n[lang],a.m,a.s.alt[lang])}</p></div>`).join(''):'<div class="empty">No alerts. Raise the rainfall to see the system react.</div>';
+}
+
+const rs=document.getElementById('rain');
+rs.oninput=()=>{rain=+rs.value;document.getElementById('rv').textContent=rain+' mm/h'};
+document.querySelectorAll('#presets button').forEach(b=>b.onclick=()=>{rs.value=b.dataset.r;rs.oninput()});
+document.querySelectorAll('#langs button').forEach(b=>b.onclick=()=>{lang=b.dataset.l;document.documentElement.lang=lang;
+ document.querySelectorAll('#langs button').forEach(x=>x.setAttribute('aria-pressed',x===b));render()});
+const pp=document.getElementById('pp');
+pp.onclick=()=>{paused=!paused;pp.textContent=paused?'Resume':'Pause';pp.setAttribute('aria-pressed',paused)};
+setInterval(()=>{if(!paused)tick()},600);
+render();
+</script>
+</body>
+</html>
